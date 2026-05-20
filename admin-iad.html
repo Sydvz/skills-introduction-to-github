@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Back-office – IAD Nice</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #05102B; --navy2: #0A1A3E; --accent: #44ACFF;
+      --white: #fff; --grey: #94A3B8; --border: rgba(255,255,255,0.08);
+      --card: rgba(255,255,255,0.04); --radius: 14px;
+      --green: #10B981; --yellow: #F59E0B; --red: #EF4444;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--navy); color: var(--white); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(68,172,255,0.08) 0%, transparent 60%);
+    }
+    .login-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    }
+    .login-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(68,172,255,0.12); border: 1px solid rgba(68,172,255,0.3); color: var(--accent); font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; margin-bottom: 24px; }
+    .login-card h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
+    .login-card p { color: var(--grey); font-size: 0.88rem; margin-bottom: 32px; line-height: 1.6; }
+    .login-card p a { color: var(--accent); }
+    .l-field { margin-bottom: 18px; }
+    .l-field label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--grey); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .l-field input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: white; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color .2s, box-shadow .2s; }
+    .l-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(68,172,255,0.15); }
+    .l-field input::placeholder { color: rgba(255,255,255,0.25); }
+    .login-btn { width: 100%; background: var(--accent); color: var(--navy); border: none; padding: 13px; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .2s; margin-top: 8px; }
+    .login-btn:hover { opacity: 0.85; }
+    .login-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #FCA5A5; font-size: 0.82rem; padding: 10px 14px; border-radius: 8px; margin-top: 14px; display: none; }
+
+    /* ── LAYOUT ── */
+    #app { display: none; min-height: 100vh; }
+
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+      background: #020818; border-right: 1px solid var(--border);
+      padding: 28px 0; display: flex; flex-direction: column; z-index: 50;
+    }
+    .sidebar-brand { padding: 0 24px 28px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-brand .name { font-size: 1.1rem; font-weight: 800; }
+    .sidebar-brand .name span { color: var(--accent); }
+    .sidebar-brand small { color: var(--grey); font-size: 0.75rem; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 24px; font-size: 0.88rem; font-weight: 500; color: var(--grey); cursor: pointer; transition: color .2s, background .2s; border-radius: 0; text-decoration: none; }
+    .nav-item:hover, .nav-item.active { color: white; background: rgba(255,255,255,0.05); }
+    .nav-item.active { border-right: 2px solid var(--accent); color: var(--accent); }
+    .nav-item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .sidebar-footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid var(--border); }
+    .logout-btn { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--grey); cursor: pointer; background: none; border: none; font-family: inherit; transition: color .2s; }
+    .logout-btn:hover { color: var(--red); }
+    .logout-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+    .main { margin-left: 240px; padding: 36px 40px; }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 20px; } }
+
+    /* ── TOP BAR ── */
+    .topbar-admin {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 36px; flex-wrap: wrap; gap: 16px;
+    }
+    .topbar-admin h1 { font-size: 1.5rem; font-weight: 800; }
+    .topbar-admin .actions { display: flex; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: opacity .2s; }
+    .btn-primary { background: var(--accent); color: var(--navy); }
+    .btn-ghost { background: rgba(255,255,255,0.06); color: white; border: 1px solid var(--border); }
+    .btn:hover { opacity: 0.85; }
+    .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── STATS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .stat-card .label { font-size: 0.75rem; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .stat-card .label svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .stat-card .value { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+    .stat-card .delta { font-size: 0.75rem; margin-top: 4px; color: var(--green); }
+
+    /* ── FILTERS ── */
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; stroke: var(--grey); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+    .search-wrap input { width: 100%; padding: 9px 14px 9px 36px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: white; font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color .2s; }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--grey); }
+    .filter-select { padding: 9px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: white; font-family: inherit; font-size: 0.88rem; outline: none; cursor: pointer; }
+    .filter-select option { background: #0A1A3E; }
+
+    /* ── TABLE ── */
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th { padding: 13px 16px; text-align: left; font-size: 0.72rem; font-weight: 700; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .15s; cursor: pointer; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    td { padding: 13px 16px; font-size: 0.85rem; vertical-align: middle; }
+    .td-name { font-weight: 600; }
+    .td-email { color: var(--grey); }
+    .td-date { color: var(--grey); font-size: 0.8rem; white-space: nowrap; }
+
+    .badge-situation {
+      display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+    }
+    .badge-salarie    { background: rgba(68,172,255,0.15); color: var(--accent); }
+    .badge-reconversion { background: rgba(124,58,237,0.15); color: #A78BFA; }
+    .badge-demandeur  { background: rgba(245,158,11,0.15); color: #FCD34D; }
+    .badge-independant { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+    .badge-etudiant   { background: rgba(239,68,68,0.15); color: #FCA5A5; }
+    .badge-retraite   { background: rgba(148,163,184,0.15); color: #CBD5E1; }
+    .badge-autre      { background: rgba(255,255,255,0.08); color: var(--grey); }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-new      { background: var(--accent); }
+    .status-contacted { background: var(--green); }
+    .status-archived  { background: var(--grey); }
+
+    .status-select { background: transparent; border: none; color: inherit; font-family: inherit; font-size: 0.82rem; cursor: pointer; outline: none; }
+    .status-select option { background: #0A1A3E; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--grey); }
+    .empty-state svg { width: 40px; height: 40px; stroke: var(--grey); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin: 0 auto 16px; display: block; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #0A1A3E; border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; width: 100%; max-width: 520px; padding: 36px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .modal-header h2 { font-size: 1.2rem; font-weight: 800; }
+    .modal-close { background: rgba(255,255,255,0.08); border: none; color: var(--grey); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .modal-close:hover { color: white; background: rgba(255,255,255,0.15); }
+    .modal-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.87rem; }
+    .modal-row:last-child { border-bottom: none; }
+    .modal-row .key { color: var(--grey); font-weight: 500; }
+    .modal-row .val { font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
+    .modal-note { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 14px; margin-top: 16px; font-size: 0.85rem; color: var(--grey); line-height: 1.6; font-style: italic; }
+
+    /* ── LOADING ── */
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(68,172,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 40px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-wrap { text-align: center; padding: 40px; }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #0A1A3E; border: 1px solid var(--accent); color: white; padding: 12px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 500; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-badge">Back-office IAD Nice</div>
+    <h1>Connexion admin</h1>
+    <p>Entrez votre <strong>token Netlify</strong> pour accéder aux candidatures.<br>
+    Obtenez-le sur <a href="https://app.netlify.com/user/applications" target="_blank">app.netlify.com → User settings → Personal access tokens</a>.</p>
+    <div class="l-field">
+      <label>Token Netlify</label>
+      <input type="password" id="tokenInput" placeholder="nfp_xxxxxxxxxxxxxxxxxxxx" />
+    </div>
+    <div class="l-field">
+      <label>ID du formulaire <span style="color:var(--grey);font-weight:400">(optionnel — auto-détecté)</span></label>
+      <input type="text" id="formIdInput" placeholder="Laissez vide pour auto-détecter" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Accéder au back-office</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="name">IAD <span>Nice</span></div>
+      <small>Back-office recrutement</small>
+    </div>
+    <nav>
+      <a class="nav-item active" onclick="showTab('leads', event)">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Candidatures
+      </a>
+      <a class="nav-item" onclick="showTab('stats', event)">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Statistiques
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- TAB : LEADS -->
+    <div id="tabLeads">
+      <div class="topbar-admin">
+        <h1>Candidatures</h1>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="loadLeads()">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Actualiser
+          </button>
+          <button class="btn btn-primary" onclick="exportCSV()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="miniStats"></div>
+
+      <div class="filters">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Rechercher nom, email..." oninput="renderTable()" />
+        </div>
+        <select class="filter-select" id="filterSituation" onchange="renderTable()">
+          <option value="">Toutes situations</option>
+          <option value="salarie">Salarié(e)</option>
+          <option value="demandeur">Demandeur d'emploi</option>
+          <option value="independant">Indépendant(e)</option>
+          <option value="reconversion">Reconversion</option>
+          <option value="etudiant">Étudiant(e)</option>
+          <option value="retraite">Retraité(e)</option>
+          <option value="autre">Autre</option>
+        </select>
+        <select class="filter-select" id="filterStatus" onchange="renderTable()">
+          <option value="">Tous statuts</option>
+          <option value="new">Nouveau</option>
+          <option value="contacted">Contacté</option>
+          <option value="archived">Archivé</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <div id="tableContainer"><div class="loading-wrap"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- TAB : STATS -->
+    <div id="tabStats" style="display:none">
+      <div class="topbar-admin"><h1>Statistiques</h1></div>
+      <div id="statsContent" style="color:var(--grey);padding:20px">Chargement...</div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DÉTAIL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let netlifyToken = '';
+  let formId = '';
+  let allLeads = [];
+  let statuses = JSON.parse(localStorage.getItem('iad_statuses') || '{}');
+
+  /* ── LOGIN ── */
+  document.getElementById('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const manualFormId = document.getElementById('formIdInput').value.trim();
+    if (!token) { showLoginError('Veuillez entrer votre token Netlify.'); return; }
+
+    try {
+      const r = await fetch('https://api.netlify.com/api/v1/forms?per_page=100', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) throw new Error('Token invalide ou accès refusé.');
+      const forms = await r.json();
+
+      netlifyToken = token;
+
+      if (manualFormId) {
+        formId = manualFormId;
+      } else {
+        const match = forms.find(f => f.name === 'candidature-iad') || forms[0];
+        if (!match) throw new Error('Aucun formulaire Netlify trouvé. Déployez d\'abord la landing page.');
+        formId = match.id;
+      }
+
+      localStorage.setItem('iad_token', token);
+      localStorage.setItem('iad_form_id', formId);
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadLeads();
+    } catch (err) {
+      showLoginError(err.message);
+    }
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('loginError');
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  function doLogout() {
+    netlifyToken = ''; formId = ''; allLeads = [];
+    localStorage.removeItem('iad_token');
+    localStorage.removeItem('iad_form_id');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const t = localStorage.getItem('iad_token');
+    const f = localStorage.getItem('iad_form_id');
+    if (t && f) {
+      document.getElementById('tokenInput').value = t;
+      document.getElementById('formIdInput').value = f;
+      doLogin();
+    }
+  });
+
+  /* ── LOAD LEADS ── */
+  async function loadLeads() {
+    document.getElementById('tableContainer').innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+    try {
+      const r = await fetch(`https://api.netlify.com/api/v1/forms/${formId}/submissions?per_page=200`, {
+        headers: { Authorization: `Bearer ${netlifyToken}` }
+      });
+      if (!r.ok) throw new Error('Erreur lors du chargement des soumissions.');
+      allLeads = await r.json();
+      renderMiniStats();
+      renderTable();
+      renderStatsTab();
+    } catch (err) {
+      document.getElementById('tableContainer').innerHTML = `<div class="empty-state"><p style="color:#FCA5A5">${err.message}</p></div>`;
+    }
+  }
+
+  /* ── MINI STATS ── */
+  function renderMiniStats() {
+    const total = allLeads.length;
+    const today = allLeads.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString()).length;
+    const thisWeek = allLeads.filter(l => {
+      const diff = (new Date() - new Date(l.created_at)) / (1000*60*60*24);
+      return diff <= 7;
+    }).length;
+    const newCount = allLeads.filter(l => (statuses[l.id] || 'new') === 'new').length;
+
+    document.getElementById('miniStats').innerHTML = `
+      <div class="stat-card">
+        <div class="label"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Total leads</div>
+        <div class="value">${total}</div>
+        <div class="delta">Depuis le début</div>
+      </div>
+      <div class="stat-card">
+        <div class="label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Aujourd'hui</div>
+        <div class="value">${today}</div>
+        <div class="delta">Nouvelles candidatures</div>
+      </div>
+      <div class="stat-card">
+        <div class="label"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Cette semaine</div>
+        <div class="value">${thisWeek}</div>
+        <div class="delta">7 derniers jours</div>
+      </div>
+      <div class="stat-card">
+        <div class="label"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>À contacter</div>
+        <div class="value" style="color:var(--accent)">${newCount}</div>
+        <div class="delta">Statut "Nouveau"</div>
+      </div>
+    `;
+  }
+
+  /* ── TABLE ── */
+  function renderTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const filterSit = document.getElementById('filterSituation').value;
+    const filterStat = document.getElementById('filterStatus').value;
+
+    let filtered = allLeads.filter(l => {
+      const d = l.data || {};
+      const name = `${d.prenom||''} ${d.nom||''} ${d.email||''}`.toLowerCase();
+      const sit = d.situation || '';
+      const stat = statuses[l.id] || 'new';
+      return (!search || name.includes(search))
+        && (!filterSit || sit === filterSit)
+        && (!filterStat || stat === filterStat);
+    });
+
+    if (!filtered.length) {
+      document.getElementById('tableContainer').innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          <p>${allLeads.length === 0 ? 'Aucune candidature reçue pour le moment.' : 'Aucun résultat pour ces filtres.'}</p>
+        </div>`;
+      return;
+    }
+
+    const sitLabels = { salarie:'Salarié(e)', demandeur:"Demandeur d'emploi", independant:'Indépendant(e)', reconversion:'Reconversion', etudiant:'Étudiant(e)', retraite:'Retraité(e)', autre:'Autre' };
+    const statDots = { new:'status-new', contacted:'status-contacted', archived:'status-archived' };
+
+    document.getElementById('tableContainer').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Nom</th><th>Email</th><th>Téléphone</th>
+          <th>Situation</th><th>Expérience</th><th>Date</th><th>Statut</th>
+        </tr></thead>
+        <tbody>
+          ${filtered.map(l => {
+            const d = l.data || {};
+            const sit = d.situation || 'autre';
+            const stat = statuses[l.id] || 'new';
+            const date = new Date(l.created_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+            return `<tr onclick="openModal('${l.id}')">
+              <td class="td-name">${d.prenom||''} ${d.nom||''}</td>
+              <td class="td-email">${d.email||'—'}</td>
+              <td>${d.tel||'—'}</td>
+              <td><span class="badge-situation badge-${sit}">${sitLabels[sit]||sit}</span></td>
+              <td style="color:var(--grey);font-size:0.8rem">${d.experience||'—'}</td>
+              <td class="td-date">${date}</td>
+              <td onclick="event.stopPropagation()">
+                <span class="status-dot ${statDots[stat]}"></span>
+                <select class="status-select" onchange="setStatus('${l.id}', this.value)">
+                  <option value="new" ${stat==='new'?'selected':''}>Nouveau</option>
+                  <option value="contacted" ${stat==='contacted'?'selected':''}>Contacté</option>
+                  <option value="archived" ${stat==='archived'?'selected':''}>Archivé</option>
+                </select>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  /* ── STATUS ── */
+  function setStatus(id, val) {
+    statuses[id] = val;
+    localStorage.setItem('iad_statuses', JSON.stringify(statuses));
+    renderMiniStats();
+    renderTable();
+    showToast('Statut mis à jour');
+  }
+
+  /* ── MODAL ── */
+  function openModal(id) {
+    const l = allLeads.find(x => x.id === id);
+    if (!l) return;
+    const d = l.data || {};
+    const sitLabels = { salarie:'Salarié(e)', demandeur:"Demandeur d'emploi", independant:'Indépendant(e)', reconversion:'Reconversion professionnelle', etudiant:'Étudiant(e)', retraite:'Retraité(e)', autre:'Autre' };
+    const expLabels = { aucune:'Aucune expérience', peu:'Quelques notions', oui:'Expérimenté(e)' };
+    const date = new Date(l.created_at).toLocaleString('fr-FR');
+
+    document.getElementById('modalContent').innerHTML = `
+      <div class="modal-header">
+        <h2>${d.prenom||''} ${d.nom||''}</h2>
+        <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-row"><span class="key">Email</span><span class="val">${d.email||'—'}</span></div>
+      <div class="modal-row"><span class="key">Téléphone</span><span class="val">${d.tel||'—'}</span></div>
+      <div class="modal-row"><span class="key">Situation</span><span class="val">${sitLabels[d.situation]||d.situation||'—'}</span></div>
+      <div class="modal-row"><span class="key">Expérience immo</span><span class="val">${expLabels[d.experience]||d.experience||'—'}</span></div>
+      <div class="modal-row"><span class="key">Date de soumission</span><span class="val">${date}</span></div>
+      ${d.motivation ? `<div class="modal-note">"${d.motivation}"</div>` : ''}
+    `;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalOverlay')) {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+  }
+
+  /* ── STATS TAB ── */
+  function renderStatsTab() {
+    const sitLabels = { salarie:'Salarié(e)', demandeur:"Demandeur d'emploi", independant:'Indépendant(e)', reconversion:'Reconversion', etudiant:'Étudiant(e)', retraite:'Retraité(e)', autre:'Autre' };
+    const counts = {};
+    allLeads.forEach(l => {
+      const s = (l.data||{}).situation || 'autre';
+      counts[s] = (counts[s]||0) + 1;
+    });
+    const total = allLeads.length || 1;
+    const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+
+    document.getElementById('statsContent').innerHTML = `
+      <h2 style="margin-bottom:24px;font-size:1.1rem;font-weight:700">Répartition par situation</h2>
+      ${sorted.map(([sit, count]) => `
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.85rem">
+            <span>${sitLabels[sit]||sit}</span>
+            <span style="color:var(--grey)">${count} (${Math.round(count/total*100)}%)</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:999px;height:8px;overflow:hidden">
+            <div style="background:var(--accent);height:100%;border-radius:999px;width:${Math.round(count/total*100)}%;transition:width .4s"></div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  /* ── EXPORT CSV ── */
+  function exportCSV() {
+    if (!allLeads.length) { showToast('Aucune donnée à exporter'); return; }
+    const headers = ['Prénom','Nom','Email','Téléphone','Situation','Expérience','Message','Date','Statut'];
+    const rows = allLeads.map(l => {
+      const d = l.data || {};
+      return [
+        d.prenom||'', d.nom||'', d.email||'', d.tel||'',
+        d.situation||'', d.experience||'', (d.motivation||'').replace(/"/g,'""'),
+        new Date(l.created_at).toLocaleDateString('fr-FR'),
+        statuses[l.id]||'new'
+      ].map(v => `"${v}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+    a.download = `leads-iad-nice-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('Export CSV téléchargé');
+  }
+
+  /* ── TABS ── */
+  function showTab(tab, e) {
+    document.getElementById('tabLeads').style.display = tab === 'leads' ? 'block' : 'none';
+    document.getElementById('tabStats').style.display = tab === 'stats' ? 'block' : 'none';
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    if (e && e.currentTarget) e.currentTarget.classList.add('active');
+  }
+
+  /* ── TOAST ── */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
